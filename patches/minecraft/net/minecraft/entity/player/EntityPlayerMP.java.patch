@@ -118,3 +118,11 @@
      }
  
      protected void func_70670_a(PotionEffect p_70670_1_)
+@@ -1183,6 +1213,7 @@
+     public void func_70634_a(double p_70634_1_, double p_70634_3_, double p_70634_5_)
+     {
+         this.field_71135_a.func_147364_a(p_70634_1_, p_70634_3_, p_70634_5_, this.field_70177_z, this.field_70125_A);
++        this.field_70170_p.func_72866_a(this, true);
+     }
+ 
+     public void func_71009_b(Entity p_71009_1_)
