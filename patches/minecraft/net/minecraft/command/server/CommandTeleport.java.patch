@@ -1,0 +1,18 @@
+--- ../src-base/minecraft/net/minecraft/command/server/CommandTeleport.java
++++ ../src-work/minecraft/net/minecraft/command/server/CommandTeleport.java
+@@ -93,6 +93,7 @@
+             p_189862_0_.func_184210_p();
+             ((EntityPlayerMP)p_189862_0_).field_71135_a.func_175089_a(p_189862_1_.func_179628_a(), p_189862_2_.func_179628_a(), p_189862_3_.func_179628_a(), f, f1, set);
+             p_189862_0_.func_70034_d(f);
++            p_189862_0_.field_70170_p.func_72866_a(p_189862_0_, true);
+         }
+         else
+         {
+@@ -101,6 +102,7 @@
+             f3 = MathHelper.func_76131_a(f3, -90.0F, 90.0F);
+             p_189862_0_.func_70012_b(p_189862_1_.func_179628_a(), p_189862_2_.func_179628_a(), p_189862_3_.func_179628_a(), f2, f3);
+             p_189862_0_.func_70034_d(f2);
++            p_189862_0_.field_70170_p.func_72866_a(p_189862_0_, true);
+         }
+ 
+         if (!(p_189862_0_ instanceof EntityLivingBase) || !((EntityLivingBase)p_189862_0_).func_184613_cA())
