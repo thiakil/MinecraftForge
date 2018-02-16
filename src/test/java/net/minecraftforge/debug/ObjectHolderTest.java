@@ -1,21 +1,26 @@
 package net.minecraftforge.debug;
 
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockStone;
+import net.minecraft.init.Blocks;
 import net.minecraft.potion.Potion;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.SoundEvent;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.registries.IForgeRegistryEntry;
 import net.minecraftforge.registries.RegistryBuilder;
+import org.apache.logging.log4j.LogManager;
 
 @Mod(modid = ObjectHolderTest.MODID, name = "ObjectHolderTests", version = "1.0", acceptableRemoteVersions = "*")
 public class ObjectHolderTest
 {
     public static final String MODID = "objectholdertest";
+    final static boolean TEST_VANILLA_REPLACEMENT_BLOCKS = true;//whether to register and test a vanilla override changing the value in net.minecraft.init.Blocks
 
     @Mod.EventHandler
     public void init(FMLInitializationEvent event)
@@ -33,6 +38,13 @@ public class ObjectHolderTest
         //verifies interfaces are supported
         assert CustomRegistryObjectHolder.custom_entry_by_interface != null;
 
+        if (TEST_VANILLA_REPLACEMENT_BLOCKS)
+        {
+            if (Blocks.STONE instanceof VanillaOverride)
+                LogManager.getLogger(MODID).info("Vanilla replacement succeeded");
+            else
+                throw new RuntimeException("Vanilla replacement objectholder failed");
+        }
     }
 
     protected static class PotionForge extends Potion
@@ -64,6 +76,15 @@ public class ObjectHolderTest
             event.getRegistry().register(
                 new ObjectHolderTest.PotionForge(new ResourceLocation(ObjectHolderTest.MODID, "forge_potion"), false, 0xff00ff) // test automatic id distribution
             );
+        }
+        
+        @SubscribeEvent
+        public static void registerVanillaOverride(RegistryEvent.Register<Block> event)
+        {
+            if (TEST_VANILLA_REPLACEMENT_BLOCKS)
+            {
+                event.getRegistry().register(new VanillaOverride().setRegistryName(Blocks.STONE.getRegistryName()));
+            }
         }
 
         @SubscribeEvent
@@ -130,5 +151,8 @@ public class ObjectHolderTest
 
         //Tests whether interfaces can be used
         public static final ICustomRegistryEntry custom_entry_by_interface = null;
+    }
+    
+    static class VanillaOverride extends BlockStone{
     }
 }

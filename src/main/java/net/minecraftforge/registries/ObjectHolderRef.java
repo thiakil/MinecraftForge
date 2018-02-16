@@ -84,14 +84,7 @@ class ObjectHolderRef
         {
             throw new IllegalStateException(String.format("The ObjectHolder annotation cannot apply to a field that does not map to a registry. Ensure the registry was created during the RegistryEvent.NewRegistry event. (found : %s at %s.%s)", field.getType().getName(), field.getClass().getName(), field.getName()));
         }
-        try
-        {
-            FinalFieldHelper.makeWritable(field);
-        }
-        catch (ReflectiveOperationException e)
-        {
-            throw new RuntimeException(e);
-        }
+        field.setAccessible(true);
     }
 
     @SuppressWarnings("unchecked")
@@ -143,33 +136,11 @@ class ObjectHolderRef
         }
         try
         {
-            FinalFieldHelper.setField(field, null, thing);
+            field.set(null, thing);
         }
         catch (IllegalArgumentException | ReflectiveOperationException e)
         {
             FMLLog.log.warn("Unable to set {} with value {} ({})", this.field, thing, this.injectedObject, e);
-        }
-    }
-
-    private static class FinalFieldHelper
-    {
-        private static Field modifiersField;
-
-        static Field makeWritable(Field f) throws ReflectiveOperationException
-        {
-            f.setAccessible(true);
-            if (modifiersField == null)
-            {
-                modifiersField = Field.class.getDeclaredField("modifiers");
-                modifiersField.setAccessible(true);
-            }
-            modifiersField.setInt(f, f.getModifiers() & ~Modifier.FINAL);
-            return f;
-        }
-
-        static void setField(Field field, @Nullable Object instance, Object thing) throws ReflectiveOperationException
-        {
-            field.set(instance, thing);
         }
     }
 }

@@ -19,6 +19,10 @@
 
 package net.minecraftforge.registries;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.List;
@@ -80,6 +84,7 @@ public enum ObjectHolderRegistry
                 scanTarget(classModIds, classCache, className, annotationTarget, value, isClass, false);
             }
         }
+        /**IMPORTANT: These must be listed in {@link net.minecraftforge.fml.common.asm.transformers.ObjectHolderTransformer} in order to work! **/
         scanTarget(classModIds, classCache, "net.minecraft.init.Blocks", null, "minecraft", true, true);
         scanTarget(classModIds, classCache, "net.minecraft.init.Items", null, "minecraft", true, true);
         scanTarget(classModIds, classCache, "net.minecraft.init.MobEffects", null, "minecraft", true, true);
@@ -129,6 +134,10 @@ public enum ObjectHolderRegistry
             try
             {
                 Field f = clazz.getDeclaredField(annotationTarget);
+                if (Modifier.isFinal(f.getModifiers()))
+                {
+                    throw new IllegalStateException("Field "+className+"."+annotationTarget+" was not definaled by the transformer");
+                }
                 addHolderReference(new ObjectHolderRef(f, new ResourceLocation(value), extractFromValue));
             }
             catch (NoSuchFieldException ex)
@@ -145,9 +154,13 @@ public enum ObjectHolderRegistry
         for (Field f : clazz.getFields())
         {
             int mods = f.getModifiers();
-            boolean isMatch = Modifier.isPublic(mods) && Modifier.isStatic(mods) && Modifier.isFinal(mods);
-            if (!isMatch || f.isAnnotationPresent(ObjectHolder.class))
+            boolean wasDefinaled = f.isAnnotationPresent(DeFinaledHolderField.class);
+            if (!wasDefinaled || Modifier.isFinal(mods))
             {
+                if (wasDefinaled)
+                {
+                    throw new IllegalStateException("Field "+className+"."+f.getName()+" is final but has the annotation from the definaling transformer");
+                }
                 continue;
             }
             addHolderReference(new ObjectHolderRef(f, new ResourceLocation(value, f.getName()), extractFromExistingValues));
@@ -171,5 +184,10 @@ public enum ObjectHolderRegistry
         }
         FMLLog.log.info("Holder lookups applied");
     }
+
+    /** Annotation to signal the ObjectHolder system that the field was a valid object holder, and {@code final} was removed */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.FIELD)
+    public @interface DeFinaledHolderField{}
 
 }
