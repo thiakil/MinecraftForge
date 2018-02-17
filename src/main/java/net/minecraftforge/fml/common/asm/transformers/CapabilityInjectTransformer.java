@@ -20,22 +20,13 @@ public class CapabilityInjectTransformer implements IClassTransformer
         if (basicClass == null)
             return null;
         ClassReader cr = new ClassReader(basicClass);
-        ClassWriter cw = new ClassWriter(cr, ClassWriter.COMPUTE_FRAMES);
+        ClassWriter cw = new ClassWriter(cr, 0);
         cr.accept(new ClazzVisitor(cw), 0);
         return cw.toByteArray();
     }
 
     private static class ClazzVisitor extends ClassVisitor
     {
-        ClassVisitor superProxyClassVisitor = new ClassVisitor(Opcodes.ASM5)//FieldNode.accept only takes a ClassVisitor, define a proxy here to allow it to pass to the ClassWriter.
-        {
-            @Override
-            public FieldVisitor visitField(int access, String name, String desc, String signature, Object value)
-            {
-                return ClazzVisitor.this.cv.visitField(access, name, desc, signature, value);
-            }
-        };
-
         ClazzVisitor(ClassVisitor cv)
         {
             super(Opcodes.ASM5, cv);
@@ -58,7 +49,7 @@ public class CapabilityInjectTransformer implements IClassTransformer
             public void visitEnd()
             {
                 super.visitEnd();
-                this.accept(ClazzVisitor.this.superProxyClassVisitor);//send it to the ClassWriter
+                this.accept(ClazzVisitor.this.cv);//send it to the ClassWriter
             }
 
             @Override

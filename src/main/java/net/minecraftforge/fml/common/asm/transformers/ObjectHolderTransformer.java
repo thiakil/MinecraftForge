@@ -47,15 +47,6 @@ public class ObjectHolderTransformer implements IClassTransformer
         static final String AUTO_OBJECTHOLDER_DESC = "Lnet/minecraftforge/registries/ObjectHolderRegistry$DeFinaledHolderField;";
 
         boolean isObjectHolderClass;
-        
-        ClassVisitor superProxyClassVisitor = new ClassVisitor(Opcodes.ASM5)//FieldNode.accept only takes a ClassVisitor, define a proxy here to allow it to pass to the ClassWriter.
-        {
-            @Override
-            public FieldVisitor visitField(int access, String name, String desc, String signature, Object value)
-            {
-                return CV.this.cv.visitField(access, name, desc, signature, value);
-            }
-        };
 
         CV(boolean isBuiltInObjectHolder)
         {
@@ -109,7 +100,7 @@ public class ObjectHolderTransformer implements IClassTransformer
                         this.visitAnnotation(AUTO_OBJECTHOLDER_DESC, true).visitEnd();
                     }
                 }
-                this.accept(CV.this.superProxyClassVisitor);//send it to the ClassWriter
+                this.accept(CV.this.cv);//send it to the ClassWriter
             }
 
             @Override
