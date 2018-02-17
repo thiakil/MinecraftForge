@@ -25,7 +25,7 @@ public class LaunchClassLoadedTestHelper
         LaunchClassLoader classLoader = new LaunchClassLoader(getClassloaderURLs());
         for (String t : requiredTransformers)
         {
-            classLoader.addTransformerExclusion(t);
+            classLoader.addClassLoaderExclusion(t);
             classLoader.registerTransformer(t);
         }
         innerClass = classLoader.findClass(innerClassName);

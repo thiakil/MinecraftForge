@@ -11,6 +11,7 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.DummyModContainer;
 import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.ModMetadata;
+import net.minecraftforge.fml.test.LaunchClassLoadedTestHelper;
 import net.minecraftforge.registries.ForgeRegistry;
 import net.minecraftforge.registries.GameData;
 import net.minecraftforge.registries.ObjectHolderRegistry;
@@ -33,113 +34,132 @@ import java.util.Map;
 @RunWith(ForgeTestRunner.class)
 public class SubstitutionInjectionTest
 {
-    private ResourceLocation MC_DIRT = new ResourceLocation("minecraft:dirt");
-    private Block toSub = (new BlockDirt()
-    {
-        @Override
-        @Nonnull
-        public String toString()
-        {
-            return "SUB" + super.toString() + "SUB";
-        }
-    }).setRegistryName(MC_DIRT);
+    private static LaunchClassLoadedTestHelper helper;
 
     @BeforeClass
-    public static void setup()
+    public static void setup() throws Exception
     {
-        Loader.instance();
-        Bootstrap.register();
-        Loader.instance().setupTestHarness(new DummyModContainer(new ModMetadata()
-        {{
-            modId = "test";
-        }}));
+        helper = new LaunchClassLoadedTestHelper("net.minecraftforge.fml.common.registry.SubstitutionInjectionTest$LaunchClassLoaded", "net.minecraftforge.fml.common.asm.transformers.ObjectHolderTransformer");
     }
 
     @Test
     public void testSubstitutionInjection() throws Exception
     {
-        final ForgeRegistry<Block> blockRegistry = (ForgeRegistry<Block>)RegistryManager.ACTIVE.getRegistry(Block.class);
-        final ForgeRegistry<Item> itemRegistry = (ForgeRegistry<Item>)RegistryManager.ACTIVE.getRegistry(Item.class);
+        helper.runTestMethod("testSubstitutionInjection");
+    }
 
-        // Capture snapshot prior to registering the substitution - this is a world state "pre-substitute"
-        final Map<ResourceLocation, ForgeRegistry.Snapshot> snapshot = RegistryManager.ACTIVE.takeSnapshot(false);
 
-        Block fnd = blockRegistry.getValue(MC_DIRT);
-        Block vanilDirt = Blocks.DIRT;
-        Block currDirt = Blocks.DIRT;
-        // TEST 0: Verify that input state is correct
-        assertEquals("Got vanilla dirt ", currDirt, fnd);
-
-        // TEST 0a: Validate that the ItemBlock for Dirt points at vanilla dirt
-        ItemBlock dirtitem = (ItemBlock) itemRegistry.getValue(MC_DIRT);
-        assertEquals("ItemBlock points at my block", currDirt, dirtitem.getBlock());
-
-        blockRegistry.register(toSub); //Register a new object, with the same vanilla name, Should cause the item to be replaced
-        GameData.freezeData();
-        ObjectHolderRegistry.INSTANCE.applyObjectHolders();
-        // This should not throw an exception
-        try
-        {
-            StatList.reinit();
-        }
-        catch (Exception e)
-        {
-            fail("Caught exception");
+    public static class LaunchClassLoaded
+    {
+        static {
+            Loader.instance();
+            Bootstrap.register();
         }
 
-        // TEST 1: Does my substitute take effect? The substitute should be found in the registry
-        fnd = blockRegistry.getValue(MC_DIRT);
-        currDirt = Blocks.DIRT;
-        assertEquals("Got vanilla dirt - Blocks", toSub, currDirt);
-        assertEquals("ObjectHolder didn't apply - Blocks and registry", currDirt, fnd);
-        assertEquals("Got vanilla dirt - registry", toSub, fnd);
+        private ResourceLocation MC_DIRT = new ResourceLocation("minecraft:dirt");
+        private Block toSub = (new BlockDirt()
+        {
+            @Override
+            @Nonnull
+            public String toString()
+            {
+                return "SUB" + super.toString() + "SUB";
+            }
+        }).setRegistryName(MC_DIRT);
 
-        // TEST 1a: Validate that the ItemBlock for Dirt now points at my dirt
-        dirtitem = (ItemBlock) itemRegistry.getValue(MC_DIRT);
-        assertEquals("ItemBlock points at vanilla block", toSub, dirtitem.getBlock());
+        public LaunchClassLoaded()
+        {
+            Loader.instance().setupTestHarness(new DummyModContainer(new ModMetadata()
+            {{
+                modId = "test";
+            }}));
+        }
 
-        // TEST 2: Is the substitute still in the registry? The snapshot was taken before the substitute was added so it should NOT exist
-        GameData.injectSnapshot(snapshot, false, true);
-        ObjectHolderRegistry.INSTANCE.applyObjectHolders();
-        fnd = blockRegistry.getValue(MC_DIRT);
-        currDirt = Blocks.DIRT;
-        assertEquals("Got my dirt substitute - Blocks", vanilDirt, currDirt);
-        assertEquals("ObjectHolder didn't apply - Blocks and registry", currDirt, fnd);
-        assertEquals("Got my dirt substitute - registry", vanilDirt, fnd);
-        dirtitem = (ItemBlock) itemRegistry.getValue(MC_DIRT);
-        assertEquals("ItemBlock points at my block", vanilDirt, dirtitem.getBlock());
+        @SuppressWarnings("unused")//reflected
+        public void testSubstitutionInjection() throws Exception
+        {
+            final ForgeRegistry<Block> blockRegistry = (ForgeRegistry<Block>) RegistryManager.ACTIVE.getRegistry(Block.class);
+            final ForgeRegistry<Item> itemRegistry = (ForgeRegistry<Item>) RegistryManager.ACTIVE.getRegistry(Item.class);
 
-        // TEST 3: Does the substitute get restored when reverting to frozen state? The substitute should be found in the registry again
-        GameData.revertToFrozen();
-        ObjectHolderRegistry.INSTANCE.applyObjectHolders();
-        fnd = blockRegistry.getValue(MC_DIRT);
-        currDirt = Blocks.DIRT;
-        assertEquals("Got vanilla dirt - Blocks", toSub, currDirt);
-        assertEquals("ObjectHolder didn't apply - Blocks and registry", currDirt, fnd);
-        assertEquals("Got vanilla dirt - registry", toSub, fnd);
-        dirtitem = (ItemBlock) itemRegistry.getValue(MC_DIRT);
-        assertEquals("ItemBlock points at vanilla block", toSub, dirtitem.getBlock());
+            // Capture snapshot prior to registering the substitution - this is a world state "pre-substitute"
+            final Map<ResourceLocation, ForgeRegistry.Snapshot> snapshot = RegistryManager.ACTIVE.takeSnapshot(false);
 
-        // TEST 3: Is the substitute still in the registry? The snapshot was taken before the substitute, but we inject frozen data, so we SHOULD have the sub.
-        GameData.injectSnapshot(snapshot, true, true);
-        ObjectHolderRegistry.INSTANCE.applyObjectHolders();
-        fnd = blockRegistry.getValue(MC_DIRT);
-        currDirt = Blocks.DIRT;
-        assertEquals("Got vanilla dirt - Blocks", toSub, currDirt);
-        assertEquals("ObjectHolder didn't apply - Blocks and registry", currDirt, fnd);
-        assertEquals("Got vanilla dirt - registry", toSub, fnd);
-        dirtitem = (ItemBlock) itemRegistry.getValue(MC_DIRT);
-        assertEquals("ItemBlock points at vanilla block", toSub, dirtitem.getBlock());
+            Block fnd = blockRegistry.getValue(MC_DIRT);
+            Block vanilDirt = Blocks.DIRT;
+            Block currDirt = Blocks.DIRT;
+            // TEST 0: Verify that input state is correct
+            assertEquals("Got vanilla dirt ", currDirt, fnd);
 
-        // TEST 3 repeat: Does the substitute get restored when reverting to frozen state? The substitute should be found in the registry again
-        GameData.revertToFrozen();
-        ObjectHolderRegistry.INSTANCE.applyObjectHolders();
-        fnd = blockRegistry.getValue(MC_DIRT);
-        currDirt = Blocks.DIRT;
-        assertEquals("Got vanilla dirt - Blocks", toSub, currDirt);
-        assertEquals("ObjectHolder didn't apply - Blocks and registry", currDirt, fnd);
-        assertEquals("Got vanilla dirt - registry", toSub, fnd);
-        dirtitem = (ItemBlock) itemRegistry.getValue(MC_DIRT);
-        assertEquals("ItemBlock points at vanilla block", toSub, dirtitem.getBlock());
+            // TEST 0a: Validate that the ItemBlock for Dirt points at vanilla dirt
+            ItemBlock dirtitem = (ItemBlock) itemRegistry.getValue(MC_DIRT);
+            assertEquals("ItemBlock points at my block", currDirt, dirtitem.getBlock());
+
+            blockRegistry.register(toSub); //Register a new object, with the same vanilla name, Should cause the item to be replaced
+            GameData.freezeData();
+            ObjectHolderRegistry.INSTANCE.applyObjectHolders();
+            // This should not throw an exception
+            try
+            {
+                StatList.reinit();
+            } catch (Exception e)
+            {
+                fail("Caught exception");
+            }
+
+            // TEST 1: Does my substitute take effect? The substitute should be found in the registry
+            fnd = blockRegistry.getValue(MC_DIRT);
+            currDirt = Blocks.DIRT;
+            assertEquals("Got vanilla dirt - Blocks", toSub, currDirt);
+            assertEquals("ObjectHolder didn't apply - Blocks and registry", currDirt, fnd);
+            assertEquals("Got vanilla dirt - registry", toSub, fnd);
+
+            // TEST 1a: Validate that the ItemBlock for Dirt now points at my dirt
+            dirtitem = (ItemBlock) itemRegistry.getValue(MC_DIRT);
+            assertEquals("ItemBlock points at vanilla block", toSub, dirtitem.getBlock());
+
+            // TEST 2: Is the substitute still in the registry? The snapshot was taken before the substitute was added so it should NOT exist
+            GameData.injectSnapshot(snapshot, false, true);
+            ObjectHolderRegistry.INSTANCE.applyObjectHolders();
+            fnd = blockRegistry.getValue(MC_DIRT);
+            currDirt = Blocks.DIRT;
+            assertEquals("Got my dirt substitute - Blocks", vanilDirt, currDirt);
+            assertEquals("ObjectHolder didn't apply - Blocks and registry", currDirt, fnd);
+            assertEquals("Got my dirt substitute - registry", vanilDirt, fnd);
+            dirtitem = (ItemBlock) itemRegistry.getValue(MC_DIRT);
+            assertEquals("ItemBlock points at my block", vanilDirt, dirtitem.getBlock());
+
+            // TEST 3: Does the substitute get restored when reverting to frozen state? The substitute should be found in the registry again
+            GameData.revertToFrozen();
+            ObjectHolderRegistry.INSTANCE.applyObjectHolders();
+            fnd = blockRegistry.getValue(MC_DIRT);
+            currDirt = Blocks.DIRT;
+            assertEquals("Got vanilla dirt - Blocks", toSub, currDirt);
+            assertEquals("ObjectHolder didn't apply - Blocks and registry", currDirt, fnd);
+            assertEquals("Got vanilla dirt - registry", toSub, fnd);
+            dirtitem = (ItemBlock) itemRegistry.getValue(MC_DIRT);
+            assertEquals("ItemBlock points at vanilla block", toSub, dirtitem.getBlock());
+
+            // TEST 3: Is the substitute still in the registry? The snapshot was taken before the substitute, but we inject frozen data, so we SHOULD have the sub.
+            GameData.injectSnapshot(snapshot, true, true);
+            ObjectHolderRegistry.INSTANCE.applyObjectHolders();
+            fnd = blockRegistry.getValue(MC_DIRT);
+            currDirt = Blocks.DIRT;
+            assertEquals("Got vanilla dirt - Blocks", toSub, currDirt);
+            assertEquals("ObjectHolder didn't apply - Blocks and registry", currDirt, fnd);
+            assertEquals("Got vanilla dirt - registry", toSub, fnd);
+            dirtitem = (ItemBlock) itemRegistry.getValue(MC_DIRT);
+            assertEquals("ItemBlock points at vanilla block", toSub, dirtitem.getBlock());
+
+            // TEST 3 repeat: Does the substitute get restored when reverting to frozen state? The substitute should be found in the registry again
+            GameData.revertToFrozen();
+            ObjectHolderRegistry.INSTANCE.applyObjectHolders();
+            fnd = blockRegistry.getValue(MC_DIRT);
+            currDirt = Blocks.DIRT;
+            assertEquals("Got vanilla dirt - Blocks", toSub, currDirt);
+            assertEquals("ObjectHolder didn't apply - Blocks and registry", currDirt, fnd);
+            assertEquals("Got vanilla dirt - registry", toSub, fnd);
+            dirtitem = (ItemBlock) itemRegistry.getValue(MC_DIRT);
+            assertEquals("ItemBlock points at vanilla block", toSub, dirtitem.getBlock());
+        }
     }
 }
