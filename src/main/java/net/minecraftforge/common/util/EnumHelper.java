@@ -176,15 +176,6 @@ public class EnumHelper
         return enumClass.cast(getConstructorAccessor(enumClass, additionalTypes).invoke(null, params));
     }
 
-    public static void setFailsafeFieldValue(Field field, @Nullable Object target, @Nullable Object value) throws Exception
-    {
-        field.setAccessible(true);
-        Field modifiersField = Field.class.getDeclaredField("modifiers");
-        modifiersField.setAccessible(true);
-        modifiersField.setInt(field, field.getModifiers() & ~Modifier.FINAL);
-        field.set(target, value);
-    }
-
     private static void cleanEnumCache(Class<?> enumClass) throws Exception
     {
         enumConstantDirectory.remove(enumClass);

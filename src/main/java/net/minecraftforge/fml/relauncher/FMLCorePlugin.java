@@ -33,7 +33,8 @@ public class FMLCorePlugin implements IFMLLoadingPlugin
                              "net.minecraftforge.fml.common.asm.transformers.EventSubscriberTransformer",
                              "net.minecraftforge.fml.common.asm.transformers.EnumConstructorTransformer",
                              "net.minecraftforge.fml.common.asm.transformers.ObjectHolderTransformer",
-                             "net.minecraftforge.fml.common.asm.transformers.EnumValueCacheTransformer"
+                             "net.minecraftforge.fml.common.asm.transformers.EnumValueCacheTransformer",
+                             "net.minecraftforge.fml.common.asm.transformers.CapabilityInjectTransformer"
                             };
     }
 

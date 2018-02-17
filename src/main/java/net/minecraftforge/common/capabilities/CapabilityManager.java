@@ -165,7 +165,8 @@ public enum CapabilityManager
                                 FMLLog.log.warn("Unable to inject capability {} at {}.{} (Non-Static)", capabilityName, targetClass, targetName);
                                 return null;
                             }
-                            EnumHelper.setFailsafeFieldValue(field, null, input);
+                            field.setAccessible(true);
+                            field.set(null, input);
                         }
                         catch (Exception e)
                         {
