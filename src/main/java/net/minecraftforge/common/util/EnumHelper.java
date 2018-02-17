@@ -185,23 +185,9 @@ public class EnumHelper
         field.set(target, value);
     }
 
-    private static void blankField(Class<?> enumClass, String fieldName) throws Exception
-    {
-        for (Field field : Class.class.getDeclaredFields())
-        {
-            if (field.getName().contains(fieldName))
-            {
-                field.setAccessible(true);
-                setFailsafeFieldValue(field, enumClass, null);
-                break;
-            }
-        }
-    }
-
     private static void cleanEnumCache(Class<?> enumClass) throws Exception
     {
-        blankField(enumClass, "enumConstantDirectory");
-        blankField(enumClass, "enumConstants");
+        enumConstantDirectory.remove(enumClass);
     }
 
     @Nullable
@@ -355,7 +341,7 @@ public class EnumHelper
         {
             T[] previousValues = (T[])valuesField.get(enumType);
             T newValue = makeEnum(enumType, enumName, previousValues.length, paramTypes, paramValues);
-            setFailsafeFieldValue(valuesField, null, ArrayUtils.add(previousValues, newValue));
+            valuesField.set(null, ArrayUtils.add(previousValues, newValue));
             cleanEnumCache(enumType);
 
             return newValue;
@@ -365,5 +351,39 @@ public class EnumHelper
             FMLLog.log.error("Error adding enum with EnumHelper.", e);
             throw new RuntimeException(e);
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T> T[] getEnumConstants(Class<T> enumClazz){
+        if (!enumClazz.isEnum()) return null;
+        try
+        {
+            Method values = enumClazz.getMethod("values");
+            values.setAccessible(true);
+            return (T[])values.invoke(null);
+        } catch (ReflectiveOperationException e){
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static final Map<Class<? extends Enum<?>>,Map<String,Enum<?>>> enumConstantDirectory = new HashMap<>();
+
+    @SuppressWarnings("unchecked")
+    public static <T extends Enum<?>> T valueOf(Class<T> enumClazz, String name)
+    {
+        if (!enumClazz.isEnum())
+            return null;
+        if (enumConstantDirectory.containsKey(enumClazz)){
+            return enumClazz.cast(enumConstantDirectory.get(enumClazz).get(name));
+        }
+        T[] values = getEnumConstants(enumClazz);
+        if (values == null)
+            throw new IllegalStateException("should not be possible");
+        Map<String,T> valMap = new HashMap<>(2*values.length);
+        enumConstantDirectory.put(enumClazz, (Map<String,Enum<?>>)valMap);
+        for (T v : values){
+            valMap.put(v.name(), v);
+        }
+        return valMap.get(name);
     }
 }
