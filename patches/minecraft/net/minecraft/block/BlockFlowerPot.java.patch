@@ -31,6 +31,15 @@
          super.func_180663_b(p_180663_1_, p_180663_2_, p_180663_3_);
      }
  
+@@ -274,7 +269,7 @@
+     public IBlockState func_176221_a(IBlockState p_176221_1_, IBlockAccess p_176221_2_, BlockPos p_176221_3_)
+     {
+         BlockFlowerPot.EnumFlowerType blockflowerpot$enumflowertype = BlockFlowerPot.EnumFlowerType.EMPTY;
+-        TileEntity tileentity = p_176221_2_ instanceof ChunkCache ? ((ChunkCache)p_176221_2_).func_190300_a(p_176221_3_, Chunk.EnumCreateEntityType.CHECK) : p_176221_2_.func_175625_s(p_176221_3_);
++        TileEntity tileentity = p_176221_2_.getTileEntity2(p_176221_3_, Chunk.EnumCreateEntityType.CHECK);
+ 
+         if (tileentity instanceof TileEntityFlowerPot)
+         {
 @@ -398,6 +393,30 @@
          return BlockFaceShape.UNDEFINED;
      }
